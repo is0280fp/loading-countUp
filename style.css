@@ -1,0 +1,28 @@
+body {
+    background: black;
+    color: white;
+}
+
+.container {
+    display: flex;
+    flex-direction: row;
+}
+
+.count_up {
+    width: 300px;
+    text-align: center;
+	background: linear-gradient(125deg, rgba(134,36,171,1) 13%, rgba(231,2,12,1) 100%);
+    
+    .number,.headline {
+        font-size: 36px;
+        font-weight: 600;
+    }
+    
+    .text {
+        font-size: 16px;
+        margin-top: 32px;
+        font-weight: 400;
+        color: #aaaaaa;
+    }
+}
+
