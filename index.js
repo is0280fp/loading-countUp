@@ -1,31 +1,15 @@
 // view area function to start the animation
-const element_to_animate = document.documentElement.querySelectorAll("animate")
+const element_to_animate = document.documentElement.querySelectorAll(".animate").item(0)
 
 // function to check element in view area
-function into_view_area() {
+function into_view_area(element) {
 	const window_height = window.innerHeight;
 	const window_top_position = window.scrollY;
 	const window_bottom_position = (window_top_position + window_height);
 
-	// calculate view area
-	// $.each(element_to_animate, function() {
-	// 	var element_height = $(this).outerHeight();
-	// 	var element_top_position = $(this).offset().top;
-	// 	var element_bottom_position = (element_top_position + element_height);
- 
-	// 	//check to see if this current element is within viewport
-	// 	if ((element_bottom_position >= window_top_position) && (element_top_position <= window_bottom_position)) {
-	// 		$(this).addClass('in_view');
-	// 	}
-	// 	else {
-	// 		$(this).removeClass('in_view');
-	// 	}
-	// });
-    element_to_animate.forEach((element)=>{
-        const element_height = element.getBoundingClientRect().height
-        const element_top_position = element.getBoundingClientRect().top
-        const element_bottom_position = (element_top_position + element_height);
-    })
+    const element_height = element.offsetHeight;
+    const element_top_position = element.getBoundingClientRect().top;
+    const element_bottom_position = element_top_position + element_height;
 
     if ((element_bottom_position >= window_top_position) && (window_bottom_position >= element_top_position)) {
         element.classList.add("in_view")
@@ -34,140 +18,102 @@ function into_view_area() {
     }
 }
 
-// initialize function
-window.on('scroll resize', into_view_area);
-window.trigger('scroll');
+// Add event listeners for scroll and resize events
+window.addEventListener('scroll', into_view_area(element_to_animate));
+window.addEventListener('resize', into_view_area(element_to_animate));
 
+// Trigger the scroll event manually
+window.dispatchEvent(new Event('scroll'));
 
-// ++++++++++++++++++++++++++++++++++++
-// counter box to count up the number from 0 to defined value
+function countTo (element, options) {
+    options = Object.assign({}, countTo.defaults, options || {});
 
-$.fn.countTo = function(options) {
-	// merge the default plugin settings with the custom options
-	options = $.extend({}, $.fn.countTo.defaults, options || {});
+    // how many times to update the value, and how much to increment the value on each update
+    const loops = Math.ceil(options.speed / options.refreshInterval)
+    const increment = (options.to - options.from) / loops;
+    
+    let loopCount = 0;
+    let value = options.from;
 
-	// how many times to update the value, and how much to increment the value on each update
-	var loops = Math.ceil(options.speed / options.refreshInterval),
-		increment = (options.to - options.from) / loops;
+    const interval = setInterval(updateTimer, options.refreshInterval);
 
-	return $(this).each(function() {
-		var _this = this,
-			loopCount = 0,
-			value = options.from,
-			interval = setInterval(updateTimer, options.refreshInterval);
+    // update value by loops
+    function updateTimer() {
+        value += increment;
+        loopCount++;
 
-		// update value by loops
-		function updateTimer() {
-			value += increment;
-			loopCount++;
+        // add decimal and change string to number
+        const valueWithDecimal = value.toFixed(options.decimals);
+        const valueAsNumber = Number.parseFloat(valueWithDecimal);
 
-			// add decimal and change string to number
-			var valueWithDecimal = value.toFixed(options.decimals),
-				valueAsNumber = Number.parseFloat(valueWithDecimal);
+        // output frontend
+        const valueAsLocaleNumber = valueAsNumber.toLocaleString();
+        element.innerHTML = valueAsLocaleNumber.replace(/\./g, element.dataset.seperator)
 
-			// output frontend
-			var valueAsLocaleNumber = valueAsNumber.toLocaleString();
-			//$(_this).html(valueAsLocaleNumber);
-			$(_this).html(valueAsLocaleNumber.replace(/\./g,$(_this).data('seperator')));
+        // custom functions on update
+        if (typeof(options.onUpdate) == 'function') {
+            options.onUpdate.call(element);
+        }
 
-			// custom functions on update
-			if (typeof(options.onUpdate) == 'function') {
-				options.onUpdate.call(_this, value);
-			}
+        // custom functions on complete
+        if (loopCount >= loops) {
+            clearInterval(interval);
+            value = options.to;
 
-			// custom functions on complete
-			if (loopCount >= loops) {
-				clearInterval(interval);
-				value = options.to;
+            if (typeof(options.onComplete) == 'function') {
+                options.onComplete.call(element);
+            }
+        }
+    }
+}
 
-				if (typeof(options.onComplete) == 'function') {
-					options.onComplete.call(_this, value);
-				}
-			}
-		}
-	});
-};
-
-// default options
-$.fn.countTo.defaults = {
-	from: 0,  // the number the element should start at
-	to: 100,  // the number the element should end at
-	speed: 1000,  // how long it should take to count between the target numbers
-	refreshInterval: 100,  // how often the element should be updated
-	decimals: 0,  // the number of decimal places to show
-	onUpdate: null,  // callback method for every time the element is updated,
-	onComplete: null,  // callback method for when the element finishes updating
+// Default options
+countTo.defaults = {
+    from: 0, // The number the element should start at
+    to: 100, // The number the element should end at
+    speed: 1000, // How long it should take to count between the target numbers
+    refreshInterval: 100, // How often the element should be updated
+    decimals: 0, // The number of decimal places to show
+    onUpdate: null, // Custom function to run on update
+    onComplete: null // Custom function to run on completion
 };
 
 
 
 // get the element and start to count number in view area
-function updateOptions() {
-	const elements = document.documentElement.getElementsByClassName(".count_up");
-    
-    elements.forEach(
-        // function() {
-        //     if($(this).hasClass('in_view') && !$(this).hasClass('is_done')) {
-        //         $(this).addClass('is_running');
-
-        //         if($(this).hasClass('is_running')) {
-        //             $(this).find('.value').countTo({
-        //                 from: 0
-        //                 ,to: $(this).find('.value').data('count')
-        //                 ,speed: 3000
-        //                 ,refreshInterval: 50
-        //                 ,decimals: $(this).find('.value').data('decimal')
-        //                 ,onUpdate: (value) => {
-        //                     element.addClass('is_done');
-        //                 }
-        //                 ,onComplete: function(value) {
-        //                     element.removeClass('is_running');
-        //                 }
-        //             });
-        //         }
-        //     }
-	    // }
-        (element) => {
-            if (element.classList.contains('in_view') && !element.classList.contains('is_done')) {
-                element.classList.add('is_running')
-                
-                if (element.classList.contains('is_running')) {
-                    const target = document.getElementsByClassName(".value")
-                    const options = {
-                        from: 0,
-                        to: target.dataset.count,
-                        speed: 3000,
-                        refreshInterval: 50,
-                        decimals: target.dataset.decimal,
-                        onUpdate: (value) => {
-                            value.classList.add('is_done');
-                        },
-                        onComplete: function(value) {
-                            value.classList.remove('is_running');
-                        }
-                    }
-                    countTo(target, options)
+function updateOptions(element) {
+    if (element.classList.contains('in_view') && !element.classList.contains('is_done')) {
+        element.classList.add('is_running')
+        
+        if (element.classList.contains('is_running')) {
+            const target = document.querySelector(".value")
+            const options = {
+                from: 0,
+                to: target.dataset.count,
+                speed: 3000,
+                refreshInterval: 50,
+                decimals: target.dataset.decimal,
+                onUpdate: () => {
+                    element.classList.add('is_done');
+                },
+                onComplete: () => {
+                    element.classList.remove('is_running');
                 }
             }
+            countTo(target, options)
         }
-    );
+    }
 }
-$(window).on('scroll load', function() {
-    updateOptions();
-});
 
-// $('button.start').click(function() {
-// 	$('.count_up').removeClass('is_done');
-// 	$('.count_up').removeClass('in_view');
-// 	into_view_area();
-// 	updateOptions();
-// });
+// Add event listeners for scroll and load events
+window.addEventListener('scroll', updateOptions(element_to_animate));
+window.addEventListener('load', updateOptions(element_to_animate));
 
-const button = document.documentElement.getElementsByClassName(".button").getElementsByClassName(".start");
-const countUp = document.documentElement.getElementsByClassName(".count_up")
-button.addEventoListener("click", () => {
+const button = document.querySelectorAll(".start").item(0);
+const countUp = document.querySelectorAll(".count_up").item(0);
+button.addEventListener("click", () => {
     countUp.classList.remove("is_done");
     countUp.classList.remove("in_view");
-    into_view_area();
-    updateOptions();
+    into_view_area(element_to_animate);
+    updateOptions(element_to_animate);
 })
